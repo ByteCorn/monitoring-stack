@@ -1,0 +1,12 @@
+global:
+  resolve_timeout: 1m
+  slack_api_url:
+
+route:
+  receiver: 'telegram'
+
+receivers:
+  - name: 'telegram'
+    telegram_configs:
+      - bot_token: '123'
+        chat_id: 123

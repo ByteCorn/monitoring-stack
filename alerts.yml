@@ -1,0 +1,47 @@
+groups:
+  - name: ai-models-alerts
+    rules:
+      - alert: HighCPUUsage
+        expr: cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Обнаружена высокая загрузка ЦП"
+          description: "Загрузка ЦП превышает 80% в течение более 5 минут"
+
+      - alert: HighMemoryUsage
+        expr: memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Обнаружено высокое потребление памяти"
+          description: "Использование памяти превышает 85% в течение более 5 минут"
+
+      - alert: GPUMemoryHigh
+        expr: gpu_memory_usage_percent > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Критически высокое использование памяти графического процессора"
+          description: "Использование памяти графического процессора превышает 90%"
+
+      - alert: ModelLoadingFailed
+        expr: increase(model_loading_failures_total[5m]) > 3
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Многочисленные сбои при загрузке модели"
+          description: "Более 3 сбоев при загрузке модели за последние 5 минут"
+
+      - alert: InferenceLatencyHigh
+        expr: inference_duration_seconds{quantile="0.95"} > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая задержка логического вывода"
+          description: "Задержка инференса на уровне 95-го процентиля превышает 30 секунд"

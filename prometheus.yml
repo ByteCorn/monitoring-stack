@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s # интервал сбора данных каждые 15 секунд
+  scrape_timeout: 10s
+  evaluation_interval: 15s # проверять правила каждые 15 секунд
+
+# оповещения
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+# правила
+rule_files:
+  - 'alerts.yml'
+
+# конфигурация сбора данных, содержащая ровно одну конечную точку для сбора данных,
+# в нашем случае это сам Prometheus
+scrape_configs:
+  # название задания соответствует имени целевого узла и добавляется в качестве метки
+  - job_name: 'neural'
+    static_configs:
+      - targets:
+        - prometheus:9090
+        - node-exporter:9100
+        - dcgm-exporter:9400
