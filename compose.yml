@@ -2,6 +2,7 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    user: root
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
