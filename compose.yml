@@ -20,11 +20,15 @@ services:
 
   alertmanager:
     image: prom/alertmanager:latest
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     command:
-      - '--config.file=/etc/alertmanager/config.yml'
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
     volumes:
-      - ./alertmanager.yml:/etc/alertmanager/config.yml:ro
+      - ./alertmanager.yml.tpl:/etc/alertmanager/alertmanager.yml.tpl:ro
+      - ./scripts/start-alertmanager.sh:/start-alertmanager.sh:ro
     ports:
       - "9093:9093"
     restart: unless-stopped
