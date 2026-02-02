@@ -23,3 +23,5 @@ scrape_configs:
         - prometheus:9090
         - node-exporter:9100
         - dcgm-exporter:9400
+        - graylog:9833
+
