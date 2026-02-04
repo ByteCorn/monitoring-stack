@@ -1,47 +1,174 @@
+# groups:
+#   - name: ai-models-alerts
+#     rules:
+#       - alert: HighCPUUsage
+#         expr: cpu_usage_percent > 80
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "Обнаружена высокая загрузка ЦП"
+#           description: "Загрузка ЦП превышает 80% в течение более 5 минут"
+
+#       - alert: HighMemoryUsage
+#         expr: memory_usage_percent > 85
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "Обнаружено высокое потребление памяти"
+#           description: "Использование памяти превышает 85% в течение более 5 минут"
+
+#       - alert: GPUMemoryHigh
+#         expr: gpu_memory_usage_percent > 90
+#         for: 2m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "Критически высокое использование памяти графического процессора"
+#           description: "Использование памяти графического процессора превышает 90%"
+
+#       - alert: ModelLoadingFailed
+#         expr: increase(model_loading_failures_total[5m]) > 3
+#         for: 1m
+#         labels:
+#           severity: critical
+#         annotations:
+#           summary: "Многочисленные сбои при загрузке модели"
+#           description: "Более 3 сбоев при загрузке модели за последние 5 минут"
+
+#       - alert: InferenceLatencyHigh
+#         expr: inference_duration_seconds{quantile="0.95"} > 30
+#         for: 5m
+#         labels:
+#           severity: warning
+#         annotations:
+#           summary: "Высокая задержка логического вывода"
+#           description: "Задержка инференса на уровне 95-го процентиля превышает 30 секунд"
+
 groups:
-  - name: ai-models-alerts
+
+  - name: host-node-alerts
     rules:
-      - alert: HighCPUUsage
-        expr: cpu_usage_percent > 80
+      # Загрузка CPU (средняя по всем ядрам)
+      - alert: HostHighCpuLoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Обнаружена высокая загрузка ЦП"
-          description: "Загрузка ЦП превышает 80% в течение более 5 минут"
+          summary: "Высокая загрузка CPU на хосте {{ $labels.instance }}"
+          description: "Средняя загрузка процессора составляет {{ $value | printf \"%.2f\" }}% в течение 5 минут."
 
-      - alert: HighMemoryUsage
-        expr: memory_usage_percent > 85
+      # Использование оперативной памяти (RAM)
+      - alert: HostHighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
         for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "Обнаружено высокое потребление памяти"
-          description: "Использование памяти превышает 85% в течение более 5 минут"
-
-      - alert: GPUMemoryHigh
-        expr: gpu_memory_usage_percent > 90
-        for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Критически высокое использование памяти графического процессора"
-          description: "Использование памяти графического процессора превышает 90%"
+          summary: "Критический дефицит RAM на {{ $labels.instance }}"
+          description: "Использовано {{ $value | printf \"%.2f\" }}% оперативной памяти. Свободно меньше 10%."
 
-      - alert: ModelLoadingFailed
-        expr: increase(model_loading_failures_total[5m]) > 3
+      # Заполнение дискового пространства
+      - alert: HostDiskSpaceRunningOut
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Мало места на диске (раздел /)"
+          description: "На системном разделе осталось менее 15% свободного места (текущий остаток: {{ $value | printf \"%.2f\" }}%)."
+
+      # Проверка доступности хоста (Up/Down)
+      - alert: HostNodeDown
+        expr: up{job="node"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Многочисленные сбои при загрузке модели"
-          description: "Более 3 сбоев при загрузке модели за последние 5 минут"
+          summary: "Хост {{ $labels.instance }} недоступен"
+          description: "Node Exporter перестал отдавать метрики. Возможно, сервер выключен или возникли проблемы с сетью."
 
-      - alert: InferenceLatencyHigh
-        expr: inference_duration_seconds{quantile="0.95"} > 30
+      # Высокая нагрузка на дисковый ввод/вывод (IO Wait)
+      - alert: HostHighIOWait
+        expr: avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100 > 10
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Высокая задержка логического вывода"
-          description: "Задержка инференса на уровне 95-го процентиля превышает 30 секунд"
+          summary: "Высокая задержка дисков (I/O Wait)"
+          description: "Процессор тратит {{ $value | printf \"%.2f\" }}% времени на ожидание ответа от дисковой подсистемы."
+
+      # Ошибки на сетевом интерфейсе
+      - alert: HostNetworkReceiveErrors
+        expr: rate(node_network_receive_errors_total[5m]) > 0.01
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ошибки сетевого интерфейса {{ $labels.device }}"
+          description: "Обнаружены входящие ошибки на сетевом интерфейсе за последние 5 минут."
+
+  - name: gpu-dcgm-alerts
+    rules:
+      # Высокая загрузка самого чипа GPU
+      - alert: GPUHighUtilization
+        expr: DCGM_FI_DEV_GPU_UTIL > 90
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая загрузка GPU на {{ $labels.modelName }}"
+          description: "Загрузка GPU {{ $labels.device }} составляет {{ $value }}% более 10 минут."
+
+      # Расчет процента использования видеопамяти: (Занято / (Занято + Свободно)) * 100
+      - alert: GPUMemoryFillingUp
+        expr: (DCGM_FI_DEV_FB_USED / (DCGM_FI_DEV_FB_USED + DCGM_FI_DEV_FB_FREE)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Память GPU почти заполнена"
+          description: "Использование видеопамяти на {{ $labels.modelName }} > 90% (текущее значение: {{ $value | printf \"%.2f\" }}%)."
+
+      # Температурный режим (для RTX 3090 Ti 80+ градусов уже повод для внимания)
+      - alert: GPUTemperatureHigh
+        expr: DCGM_FI_DEV_GPU_TEMP > 82
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Высокая температура GPU"
+          description: "Температура {{ $labels.device }} поднялась до {{ $value }}°C."
+
+      # Критическая температура (троттлинг или риск повреждения)
+      - alert: GPUTemperatureCritical
+        expr: DCGM_FI_DEV_GPU_TEMP > 89
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "КРИТИЧЕСКИЙ ПЕРЕГРЕВ GPU"
+          description: "Температура {{ $labels.device }} критическая: {{ $value }}°C. Возможен троттлинг."
+
+      # Отслеживание XID ошибок (0 - ошибок нет, любое другое число - аппаратная или драйверная проблема)
+      - alert: GPUXidErrorDetected
+        expr: DCGM_FI_DEV_XID_ERRORS > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Обнаружена ошибка GPU XID"
+          description: "На устройстве {{ $labels.device }} зафиксирована ошибка XID {{ $value }}. Проверьте dmesg или логи драйвера."
+
+      # Энергопотребление (если GPU потребляет слишком мало под нагрузкой — возможна проблема с питанием)
+      - alert: GPUPowerThrottlingPotential
+        expr: DCGM_FI_DEV_POWER_USAGE < 50 and DCGM_FI_DEV_GPU_UTIL > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Странное энергопотребление"
+          description: "GPU {{ $labels.device }} нагружен, но потребляет всего {{ $value }} Вт. Возможно ограничение питания."
+
