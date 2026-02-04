@@ -1,10 +1,8 @@
 x-logging-gelf: &gelf-logging
-  extra_hosts:
-    - "host.docker.internal:host-gateway"
   logging:
     driver: gelf
     options:
-      gelf-address: "udp://host.docker.internal:12201" # Graylog порт из стека логирования
+      gelf-address: "udp://172.17.0.1:12201" # Graylog порт из стека логирования
       tag: "monitoring-{{.Name}}" # автоматически добавит имя контейнера в тег
 
 services:
