@@ -7,7 +7,7 @@ global:
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: ['localhost:9093']
+        - targets: ['alertmanager:9093']
 
 # правила
 rule_files:
@@ -20,8 +20,9 @@ scrape_configs:
   - job_name: 'neural'
     static_configs:
       - targets:
-        - prometheus:9090
-        - node-exporter:9100
-        - dcgm-exporter:9400
-        - graylog:9833
-
+        - 'prometheus:9090'      # сам себя
+        - 'node-exporter:9100'   # метрики хоста
+        - 'dcgm-exporter:9400'   # метрики GPU
+        # Эти сервисы в другом стеке, идем через шлюз хоста
+        - 'host.docker.internal:9833' # Graylog из стека логирования
+        - 'host.docker.internal:9216' # MongoDB из стека логирования

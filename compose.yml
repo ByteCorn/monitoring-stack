@@ -1,6 +1,16 @@
+x-logging-gelf: &gelf-logging
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  logging:
+    driver: gelf
+    options:
+      gelf-address: "udp://host.docker.internal:12201" # Graylog порт из стека логирования
+      tag: "monitoring-{{.Name}}" # автоматически добавит имя контейнера в тег
+
 services:
 
   prometheus:
+    <<: *gelf-logging
     image: prom/prometheus:latest
     user: root
     command:
@@ -19,6 +29,7 @@ services:
     restart: unless-stopped
 
   alertmanager:
+    <<: *gelf-logging
     image: prom/alertmanager:latest
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -34,6 +45,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
+    <<: *gelf-logging
     image: quay.io/prometheus/node-exporter:latest
     pid: host
     command:
@@ -48,6 +60,7 @@ services:
     restart: unless-stopped
 
   dcgm-exporter:
+    <<: *gelf-logging
     image: nvcr.io/nvidia/k8s/dcgm-exporter:latest
     environment:
       - DCGM_EXPORTER_NO_HOSTNAME=1
