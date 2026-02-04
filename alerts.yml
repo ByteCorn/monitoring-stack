@@ -225,56 +225,56 @@ groups:
           summary: "MongoDB недоступна"
           description: "Graylog не сможет хранить конфигурации и сессии, так как база данных упала."
 
-  # - name: ai-inference-alerts
-  #   rules:
-  #     # Алерт на критическую задержку (если инференс идет дольше 60 секунд)
-  #     - alert: InferenceLatencyTooHigh
-  #       expr: graylog_inference_duration_seconds > 60
-  #       for: 2m
-  #       labels:
-  #         severity: critical
-  #       annotations:
-  #         summary: "Критическая задержка генерации"
-  #         description: "Модель {{ $labels.model }} отвечает дольше 60 секунд."
+  - name: ai-inference-alerts
+    rules:
+      # Алерт на критическую задержку (если инференс идет дольше 60 секунд)
+      - alert: InferenceLatencyTooHigh
+        expr: graylog_inference_duration_seconds > 60
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Критическая задержка генерации"
+          description: "Модель {{ $labels.model }} отвечает дольше 60 секунд."
 
-  #     # Проверка "проглатывания" контекста или ошибок CUDA в логах
-  #     - alert: LlamaCudaRuntimeError
-  #       expr: increase(graylog_message_count{message=~".*CUDA error.*"}[5m]) > 0
-  #       for: 0m
-  #       labels:
-  #         severity: critical
-  #       annotations:
-  #         summary: "Ошибка CUDA в llama.cpp"
-  #         description: "В логах инференса обнаружены ошибки GPU. Возможно, закончилась память."
+      # Проверка "проглатывания" контекста или ошибок CUDA в логах
+      - alert: LlamaCudaRuntimeError
+        expr: increase(graylog_message_count{message=~".*CUDA error.*"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ошибка CUDA в llama.cpp"
+          description: "В логах инференса обнаружены ошибки GPU. Возможно, закончилась память."
 
-  #     # Если генерация токенов упала до нуля при наличии запросов
-  #     - alert: InferenceStuck
-  #       expr: rate(graylog_tokens_generated_total[5m]) == 0 and DCGM_FI_DEV_GPU_UTIL > 10
-  #       for: 5m
-  #       labels:
-  #         severity: warning
-  #       annotations:
-  #         summary: "Инференс завис"
-  #         description: "GPU загружен, но генерация токенов не происходит."
+      # Если генерация токенов упала до нуля при наличии запросов
+      - alert: InferenceStuck
+        expr: rate(graylog_tokens_generated_total[5m]) == 0 and DCGM_FI_DEV_GPU_UTIL > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Инференс завис"
+          description: "GPU загружен, но генерация токенов не происходит."
 
 
-  #     # Если за последние 10 минут не пришло ни одного сообщения с тегом инференса
-  #     - alert: LlamaLogsDisappeared
-  #       expr: absents(graylog_message_count{tag="llama-cpp-inference"})
-  #       for: 10m
-  #       labels:
-  #         severity: warning
-  #       annotations:
-  #         summary: "Логи инференса не поступают"
-  #         description: "Контейнер llama_cpp_bench запущен, но Graylog не получает сообщений. Проверьте сеть или статус GELF инпута."
+      # Если за последние 10 минут не пришло ни одного сообщения с тегом инференса
+      - alert: LlamaLogsDisappeared
+        expr: absent(graylog_message_count{tag="llama-cpp-inference"})
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Логи инференса не поступают"
+          description: "Контейнер llama_cpp_bench запущен, но Graylog не получает сообщений. Проверьте сеть или статус GELF инпута."
 
-  #     # Если скорость генерации упала ниже 2 токенов в секунду
-  #     - alert: InferenceLowSpeed
+      # Если скорость генерации упала ниже 2 токенов в секунду
+      - alert: InferenceLowSpeed
         
-  #       expr: graylog_inference_tps < 2
-  #       for: 1m
-  #       labels:
-  #         severity: warning
-  #       annotations:
-  #         summary: "Низкая скорость генерации"
-  #         description: "Модель работает подозрительно медленно ({{ $value }} t/s). Возможно, память переполнена и задействован системный RAM."
+        expr: graylog_inference_tps < 2
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Низкая скорость генерации"
+          description: "Модель работает подозрительно медленно ({{ $value }} t/s). Возможно, память переполнена и задействован системный RAM."
