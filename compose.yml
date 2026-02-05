@@ -3,8 +3,8 @@ x-logging-gelf: &gelf-logging
     driver: gelf
     options:
       # Используем host.docker.internal вместо жесткого IP
-      gelf-address: "udp://host.docker.internal:12201" # Graylog порт из стека логирования
-      tag: "llm-bench-{{.Name}}" # автоматически добавит имя контейнера в тег
+      gelf-address: "udp://127.0.0.1:12201" # Graylog порт из стека логирования
+      tag: "monitoring-{{.Name}}" # автоматически добавит имя контейнера в тег
 
 services:
 
@@ -23,8 +23,6 @@ services:
       - ./prometheus_data:/prometheus
     ports:
       - "9090:9090"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     links:
       - alertmanager:alertmanager
     restart: unless-stopped
@@ -43,8 +41,6 @@ services:
       - ./scripts/start-alertmanager.sh:/start-alertmanager.sh:ro
     ports:
       - "9093:9093"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   node-exporter:
@@ -60,8 +56,6 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   dcgm-exporter:
@@ -73,8 +67,6 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=all
     ports:
       - "9400:9400"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     cap_add:
       - SYS_ADMIN
     deploy:
