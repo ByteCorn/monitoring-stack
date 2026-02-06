@@ -1,15 +1,15 @@
-x-logging-gelf: &gelf-logging
+x-logging: &vector-logging
   logging:
-    driver: gelf
+    driver: "fluentd"
     options:
-      # Используем host.docker.internal вместо жесткого IP
-      gelf-address: "udp://127.0.0.1:12201" # Graylog порт из стека логирования
+      fluentd-address: "127.0.0.1:24224" # порт из стека логирования
       tag: "monitoring-{{.Name}}" # автоматически добавит имя контейнера в тег
+      fluentd-async-connect: "true"
 
 services:
 
   prometheus:
-    <<: *gelf-logging
+    <<: *vector-logging
     image: prom/prometheus:latest
     user: root
     command:
@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
 
   alertmanager:
-    <<: *gelf-logging
+    <<: *vector-logging
     image: prom/alertmanager:latest
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
-    <<: *gelf-logging
+    <<: *vector-logging
     image: quay.io/prometheus/node-exporter:latest
     pid: host
     command:
@@ -59,7 +59,7 @@ services:
     restart: unless-stopped
 
   dcgm-exporter:
-    <<: *gelf-logging
+    <<: *vector-logging
     image: nvcr.io/nvidia/k8s/dcgm-exporter:latest
     environment:
       - DCGM_EXPORTER_NO_HOSTNAME=1
